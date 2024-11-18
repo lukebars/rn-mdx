@@ -1,18 +1,19 @@
-import React, { ComponentType, useMemo } from 'react'
-import markdownComponents from './markdownComponents'
-import MDX from '@mdx-js/runtime'
-import { MarkdownStyles, styles } from './style/styles'
+import React, { useMemo } from 'react';
+import { evaluate } from '@mdx-js/mdx';
+import * as runtime from 'react/jsx-runtime';
+import markdownComponents from './markdownComponents';
+import { styles } from './style/styles';
 
-const defaultScope = {}
+const defaultScope = {};
 
-type RenderMdxProps = {
-  children?: string
-  scope?: Record<string, unknown>
-  components?: Record<string, ComponentType>
-  componentStyle?: MarkdownStyles
+interface RenderMdxProps {
+  children: string;
+  components?: Record<string, React.ComponentType<any>>;
+  scope?: Record<string, any>;
+  componentStyle?: Record<string, any>;
 }
 
-export function RenderMdx({
+export async function RenderMdx({
   children,
   components = {},
   scope = {},
@@ -21,17 +22,18 @@ export function RenderMdx({
   const defaultComponents = useMemo(
     () => markdownComponents(styles(componentStyle)),
     [componentStyle]
-  )
-  const contentScope = { ...defaultScope, ...scope }
+  );
 
+  const contentScope = { ...defaultScope, ...scope };
   const mdxComponents = useMemo(
     () => ({ ...defaultComponents, ...components }),
     [components, defaultComponents]
-  )
+  );
 
-  return (
-    <MDX components={mdxComponents} scope={contentScope}>
-      {children}
-    </MDX>
-  )
+  const { default: Content } = await evaluate(children, {
+    ...runtime,
+    scope: contentScope
+  });
+
+  return <Content components={mdxComponents} />;
 }
